@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Kniffel - Online</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Connection Status -->
+        <div id="connection-status" class="connection-status">
+            <span id="status-icon">🔄</span>
+            <span id="status-text">Verbindung wird hergestellt...</span>
+        </div>
+
+        <!-- Main Menu / Lobby -->
+        <div id="lobby" class="lobby active">
+            <div class="card">
+                <div class="card__header">
+                    <h1>🎲 Multiplayer Kniffel</h1>
+                    <p class="text-secondary">Online über verschiedene Rechner spielen</p>
+                </div>
+                <div class="card__body">
+                    <div class="form-group">
+                        <label class="form-label" for="playerName">Spielername:</label>
+                        <input type="text" id="playerName" class="form-control" placeholder="Dein Name" maxlength="20">
+                    </div>
+
+                    <div class="lobby-buttons">
+                        <button id="createRoomBtn" class="btn btn--primary btn--full-width">
+                            🏠 Neues Spiel erstellen (Host werden)
+                        </button>
+
+                        <div class="separator">
+                            <span>oder</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="roomCode">Raum-Code:</label>
+                            <input type="text" id="roomCode" class="form-control" placeholder="ABCD" maxlength="4">
+                        </div>
+                        <button id="joinRoomBtn" class="btn btn--secondary btn--full-width">
+                            🚪 Spiel beitreten
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Waiting Room -->
+        <div id="waiting-room" class="waiting-room">
+            <div class="card">
+                <div class="card__header">
+                    <h2>Warteraum</h2>
+                    <div class="room-info">
+                        <span>Raum-Code: <strong id="current-room-code">ABCD</strong></span>
+                        <button id="copyRoomCodeBtn" class="btn btn--small">📋 Kopieren</button>
+                    </div>
+                </div>
+
+                <div class="card__body">
+                    <div class="players-section">
+                        <h3>Spieler (<span id="player-count">1</span>/6)</h3>
+                        <div id="players-list" class="players-list"></div>
+                    </div>
+
+                    <!-- Host Controls -->
+                    <div id="host-controls" class="host-controls">
+                        <h3>🎮 Host-Einstellungen</h3>
+
+                        <div class="form-group">
+                            <label>KI-Spieler hinzufügen:</label>
+                            <select id="ai-count" class="form-control">
+                                <option value="0">Keine KI</option>
+                                <option value="1">1 KI-Spieler</option>
+                                <option value="2">2 KI-Spieler</option>
+                                <option value="3">3 KI-Spieler</option>
+                                <option value="4">4 KI-Spieler</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>KI-Schwierigkeit:</label>
+                            <select id="ai-difficulty" class="form-control">
+                                <option value="easy">🟢 Einfach</option>
+                                <option value="medium" selected>🟡 Mittel</option>
+                                <option value="hard">🔴 Schwer</option>
+                            </select>
+                        </div>
+
+                        <button id="add-ai-btn" class="btn btn--secondary">🤖 KI hinzufügen</button>
+                        <button id="start-game-btn" class="btn btn--primary btn--full-width">
+                            ▶️ Spiel starten
+                        </button>
+                    </div>
+
+                    <div class="room-actions">
+                        <button id="leaveRoomBtn" class="btn btn--danger">❌ Raum verlassen</button>
+                    </div>
+
+                    <!-- Chat -->
+                    <div class="chat-section">
+                        <h3>💬 Chat</h3>
+                        <div id="chat-messages" class="chat-messages"></div>
+                        <div class="chat-input-group">
+                            <input type="text" id="chat-input" class="form-control" placeholder="Nachricht eingeben..." maxlength="200">
+                            <button id="send-chat-btn" class="btn btn--primary">Senden</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="game-screen">
+            <div class="game-header">
+                <div class="game-info">
+                    <span>Runde <span id="current-round">1</span>/13</span>
+                    <span>Raum: <span id="game-room-code">ABCD</span></span>
+                </div>
+                <button id="quitGameBtn" class="btn btn--danger btn--small">🚪 Spiel verlassen</button>
+            </div>
+
+            <div class="game-content">
+                <!-- Current Player Info -->
+                <div id="current-player-info" class="current-player-info">
+                    <h3 id="current-player-name">Spieler XYZ</h3>
+                    <p>ist am Zug</p>
+                    <div class="rolls-left">Würfe übrig: <span id="rolls-left">3</span></div>
+                </div>
+
+                <!-- Dice Area -->
+                <div class="dice-area">
+                    <div class="dice-container" id="dice-container">
+                        <!-- Würfel werden hier generiert -->
+                    </div>
+
+                    <div class="dice-controls">
+                        <button id="rollDiceBtn" class="btn btn--primary btn--large">
+                            🎲 Würfeln
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Score Sheet -->
+                <div class="score-sheet">
+                    <h3>📊 Punktestand</h3>
+                    <div id="score-table-container" class="score-table-container">
+                        <!-- Score Table wird hier generiert -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Finished Screen -->
+        <div id="game-finished" class="game-finished">
+            <div class="card">
+                <div class="card__header">
+                    <h2>🏆 Spiel beendet!</h2>
+                </div>
+                <div class="card__body">
+                    <div id="final-results" class="final-results">
+                        <!-- Endergebnisse werden hier angezeigt -->
+                    </div>
+                    <div class="finished-actions">
+                        <button id="new-game-btn" class="btn btn--primary">🔄 Neues Spiel</button>
+                        <button id="back-to-lobby-btn" class="btn btn--secondary">🏠 Zur Lobby</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
