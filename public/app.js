@@ -313,70 +313,131 @@ class KniffelMultiplayerClient {
     }
 
     renderUI() {
-        this.renderWaitingRoom();
-        this.renderGameScreen();
-        this.renderScoreTable();
-        this.renderDice();
-    }
+    this.renderWaitingRoom();
+    this.renderGameScreen();
+    this.renderGamePlayersOverview(); // NEU
+    this.renderScoreTable();
+    this.renderDice();
+}
 
     renderWaitingRoom() {
-        if (this.gameState.currentScreen !== 'waiting-room') return;
+    if (this.gameState.currentScreen !== 'waiting-room') return;
 
-        // Room Code
-        document.getElementById('current-room-code').textContent = this.gameState.roomCode;
+    // Room Code
+    document.getElementById('current-room-code').textContent = this.gameState.roomCode;
 
-        // Players List
-        const playersContainer = document.getElementById('players-list');
-        const playerCount = document.getElementById('player-count');
+    // Players List
+    const playersContainer = document.getElementById('players-list');
+    const playerCount = document.getElementById('player-count');
+    
+    playersContainer.innerHTML = '';
+    playerCount.textContent = this.gameState.players.length;
 
-        playersContainer.innerHTML = '';
-        playerCount.textContent = this.gameState.players.length;
+    // Zähle menschliche und KI-Spieler
+    let humanCount = 0;
+    let aiCount = 0;
 
-        this.gameState.players.forEach(player => {
-            const playerDiv = document.createElement('div');
-            playerDiv.className = 'player-item';
-
-            const playerInfo = document.createElement('div');
-            playerInfo.className = 'player-info';
-
-            const statusDot = document.createElement('div');
-            statusDot.className = `player-status ${player.isAI ? 'ai' : 'human'}`;
-
-            const playerName = document.createElement('span');
-            playerName.textContent = `${player.isAI ? '🤖' : '👤'} ${player.name}${player.isHost ? ' (Host)' : ''}`;
-
-            playerInfo.appendChild(statusDot);
-            playerInfo.appendChild(playerName);
-            playerDiv.appendChild(playerInfo);
-
-            playersContainer.appendChild(playerDiv);
-        });
-
-        // Host Controls
-        const hostControls = document.getElementById('host-controls');
-        hostControls.style.display = this.gameState.isHost ? 'block' : 'none';
-    }
-
-    renderGameScreen() {
-        if (this.gameState.currentScreen !== 'game-screen') return;
-
-        // Current Round
-        document.getElementById('current-round').textContent = this.gameState.currentRound;
-        document.getElementById('game-room-code').textContent = this.gameState.roomCode;
-
-        // Current Player
-        const currentPlayer = this.gameState.players[this.gameState.currentPlayerIndex];
-        if (currentPlayer) {
-            document.getElementById('current-player-name').textContent = currentPlayer.name;
+    this.gameState.players.forEach(player => {
+        const playerDiv = document.createElement('div');
+        playerDiv.className = 'player-item';
+        
+        const playerInfo = document.createElement('div');
+        playerInfo.className = 'player-info';
+        
+        const statusDot = document.createElement('div');
+        statusDot.className = `player-status ${player.isAI ? 'ai' : 'human'}`;
+        
+        const playerName = document.createElement('span');
+        playerName.textContent = `${player.isAI ? '🤖' : '👤'} ${player.name}${player.isHost ? ' (Host)' : ''}`;
+        
+        // Zählung
+        if (player.isAI) {
+            aiCount++;
+        } else {
+            humanCount++;
         }
+        
+        playerInfo.appendChild(statusDot);
+        playerInfo.appendChild(playerName);
+        playerDiv.appendChild(playerInfo);
+        
+        playersContainer.appendChild(playerDiv);
+    });
 
-        // Rolls Left
-        document.getElementById('rolls-left').textContent = this.gameState.rollsLeft;
+    // Aktualisiere Zähler
+    document.getElementById('human-count').textContent = humanCount;
+    document.getElementById('ai-count').textContent = aiCount;
 
-        // Roll Button
-        const rollBtn = document.getElementById('rollDiceBtn');
-        rollBtn.disabled = !this.isMyTurn() || this.gameState.rollsLeft <= 0;
+    // Host Controls
+    const hostControls = document.getElementById('host-controls');
+    hostControls.style.display = this.gameState.isHost ? 'block' : 'none';
+}
+
+renderGamePlayersOverview() {
+    const container = document.getElementById('game-players-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    this.gameState.players.forEach((player, index) => {
+        const playerCard = document.createElement('div');
+        playerCard.className = `game-player-card ${index === this.gameState.currentPlayerIndex ? 'current-turn' : ''}`;
+        
+        const playerInfo = document.createElement('div');
+        playerInfo.className = 'game-player-info';
+        
+        const avatar = document.createElement('span');
+        avatar.className = 'player-avatar';
+        avatar.textContent = player.isAI ? '🤖' : '👤';
+        
+        const name = document.createElement('span');
+        name.className = 'player-name';
+        name.textContent = player.name;
+        
+        const score = document.createElement('span');
+        score.className = 'player-score';
+        const total = this.calculateTotal(player.id);
+        score.textContent = `${total} Pkt`;
+        
+        playerInfo.appendChild(avatar);
+        playerInfo.appendChild(name);
+        
+        playerCard.appendChild(playerInfo);
+        playerCard.appendChild(score);
+        
+        // Turn-Indikator
+        if (index === this.gameState.currentPlayerIndex) {
+            const turnIndicator = document.createElement('span');
+            turnIndicator.className = 'turn-indicator';
+            turnIndicator.textContent = '▶️';
+            playerCard.appendChild(turnIndicator);
+        }
+        
+        container.appendChild(playerCard);
+    });
+}
+
+    
+    renderGameScreen() {
+    if (this.gameState.currentScreen !== 'game-screen') return;
+
+    // Current Round
+    document.getElementById('current-round').textContent = this.gameState.currentRound;
+    document.getElementById('game-room-code').textContent = this.gameState.roomCode || 'XXXX';
+
+    // Current Player
+    const currentPlayer = this.gameState.players[this.gameState.currentPlayerIndex];
+    if (currentPlayer) {
+        document.getElementById('current-player-name').textContent = currentPlayer.name;
     }
+
+    // Rolls Left
+    document.getElementById('rolls-left').textContent = this.gameState.rollsLeft;
+
+    // Roll Button
+    const rollBtn = document.getElementById('rollDiceBtn');
+    rollBtn.disabled = !this.isMyTurn() || this.gameState.rollsLeft <= 0;
+}
 
     renderDice() {
         const diceContainer = document.getElementById('dice-container');
