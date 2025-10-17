@@ -44,15 +44,19 @@ class GameManager {
     }
 
     generateRoomCode() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        let code;
-        do {
-            code = Array.from({length: 4}, () => 
-                chars[Math.floor(Math.random() * chars.length)]
-            ).join('');
-        } while (this.games.has(code));
-        return code;
-    }
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code;
+    do {
+        // Bessere Zufälligkeit mit Timestamp
+        const timestamp = Date.now().toString(36).slice(-2).toUpperCase();
+        const random = Array.from({length: 2}, () => 
+            chars[Math.floor(Math.random() * chars.length)]
+        ).join('');
+        code = timestamp + random;
+    } while (this.games.has(code));
+    console.log(`🎯 Neuer Raumcode generiert: ${code}`);
+    return code;
+  }
 }
 
 class KniffelGame {
@@ -378,31 +382,41 @@ io.on('connection', (socket) => {
 
     // Raum beitreten
     socket.on('join_room', ({ roomCode, playerName }) => {
-        const game = gameManager.getGame(roomCode);
-        if (!game) {
-            socket.emit('error', { message: 'Raum nicht gefunden' });
-            return;
-        }
-
-        if (game.players.size >= game.settings.maxPlayers) {
-            socket.emit('error', { message: 'Raum ist voll' });
-            return;
-        }
-
-        const player = game.addPlayer(socket.id, playerName);
-        socket.join(roomCode);
-        gameManager.players.set(socket.id, roomCode);
-
-        socket.emit('joined_room', {
-            player: player,
-            gameState: game.getGameState()
+    console.log(`🚪 Spieler ${playerName} versucht Raum ${roomCode} beizutreten`);
+    console.log(`🗂️ Verfügbare Räume:`, Array.from(gameManager.games.keys()));
+    
+    const normalizedRoomCode = roomCode.trim().toUpperCase();
+    const game = gameManager.getGame(normalizedRoomCode);
+    
+    if (!game) {
+        console.log(`❌ Raum ${normalizedRoomCode} nicht gefunden`);
+        socket.emit('error', { 
+            message: `Raum ${normalizedRoomCode} nicht gefunden. Verfügbare Räume: ${Array.from(gameManager.games.keys()).join(', ')}` 
         });
-
-        socket.to(roomCode).emit('player_joined', {
-            player: player,
-            gameState: game.getGameState()
-        });
+        return;
+    }
+    
+    if (game.players.size >= game.settings.maxPlayers) {
+        socket.emit('error', { message: 'Raum ist voll' });
+        return;
+    }
+    
+    const player = game.addPlayer(socket.id, playerName);
+    socket.join(normalizedRoomCode);
+    gameManager.players.set(socket.id, normalizedRoomCode);
+    
+    console.log(`✅ ${playerName} erfolgreich Raum ${normalizedRoomCode} beigetreten`);
+    
+    socket.emit('joined_room', {
+        player: player,
+        gameState: game.getGameState()
     });
+    
+    socket.to(normalizedRoomCode).emit('player_joined', {
+        player: player,
+        gameState: game.getGameState()
+    });
+});
 
     // KI-Spieler hinzufügen (nur Host)
     socket.on('add_ai_player', ({ roomCode, difficulty }) => {
