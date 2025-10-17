@@ -81,8 +81,10 @@ class KniffelMultiplayerClient {
         // Spieler beigetreten
         this.socket.on('player_joined', (data) => {
             console.log('👤 Spieler beigetreten:', data.player.name);
+            console.log('👥 Aktuelle Spieleranzahl:', data.gameState.players.length);
             this.updateGameState(data.gameState);
-            this.addChatMessage('System', `${data.player.name} ist beigetreten`, 'system');
+            this.renderUI(); // Wichtig: UI komplett neu rendern
+            this.addChatMessage('System', `${data.player.name} ist beigetreten (${data.gameState.players.length}/6)`, 'system');
         });
 
         // KI-Spieler hinzugefügt
