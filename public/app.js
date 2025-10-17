@@ -211,17 +211,34 @@ class KniffelMultiplayerClient {
     }
 
     joinRoom() {
-        const playerName = document.getElementById('playerName').value.trim();
-        const roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
-
-        if (!playerName || !roomCode) {
-            alert('Bitte geben Sie Namen und Raum-Code ein');
-            return;
-        }
-
-        this.gameState.playerName = playerName;
-        this.socket.emit('join_room', { roomCode, playerName });
+    const playerName = document.getElementById('playerName').value.trim();
+    const roomCodeInput = document.getElementById('roomCode').value.trim().toUpperCase();
+    
+    if (!playerName || !roomCodeInput) {
+        alert('Bitte geben Sie Namen und Raum-Code ein');
+        return;
     }
+    
+    if (roomCodeInput.length !== 4) {
+        alert('Raum-Code muss genau 4 Zeichen haben');
+        return;
+    }
+    
+    console.log(`🚪 Versuche Raum beizutreten: "${roomCodeInput}"`);
+    this.gameState.playerName = playerName;
+    
+    // Debug: Socket-Verbindung prüfen
+    if (!this.socket.connected) {
+        console.error('❌ Socket nicht verbunden!');
+        alert('Keine Verbindung zum Server. Seite neu laden und versuchen.');
+        return;
+    }
+    
+    this.socket.emit('join_room', { 
+        roomCode: roomCodeInput, 
+        playerName: playerName 
+    });
+}
 
     addAIPlayer() {
         const difficulty = document.getElementById('ai-difficulty').value;
