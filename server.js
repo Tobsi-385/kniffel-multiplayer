@@ -24,24 +24,37 @@ class GameManager {
         this.games = new Map();
         this.players = new Map();
         this.aiCounter = 0;
+        
+        // Debug: Räume alle 30 Sekunden loggen
+        setInterval(() => {
+            console.log(`🗂️ Aktive Räume (${this.games.size}):`, Array.from(this.games.keys()));
+        }, 30000);
     }
 
     createRoom() {
         const roomCode = this.generateRoomCode();
         const game = new KniffelGame(roomCode);
         this.games.set(roomCode, game);
-        console.log(`🎯 Raum ${roomCode} erstellt`);
+        console.log(`🎯 Raum ${roomCode} erstellt. Gesamt: ${this.games.size} Räume`);
         return game;
     }
 
     getGame(roomCode) {
-        return this.games.get(roomCode);
+        const normalizedCode = roomCode?.toString().trim().toUpperCase();
+        const game = this.games.get(normalizedCode);
+        console.log(`🔍 Suche Raum "${normalizedCode}": ${game ? 'GEFUNDEN' : 'NICHT GEFUNDEN'}`);
+        return game;
     }
 
     deleteGame(roomCode) {
-        this.games.delete(roomCode);
-        console.log(`🗑️ Raum ${roomCode} gelöscht`);
+        const normalizedCode = roomCode?.toString().trim().toUpperCase();
+        const deleted = this.games.delete(normalizedCode);
+        if (deleted) {
+            console.log(`🗑️ Raum ${normalizedCode} gelöscht. Verbleibend: ${this.games.size}`);
+        }
+        return deleted;
     }
+}
 
     generateRoomCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
