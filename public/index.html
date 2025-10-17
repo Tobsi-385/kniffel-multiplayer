@@ -64,7 +64,15 @@
                     <div class="players-section">
                         <h3>Spieler (<span id="player-count">1</span>/6)</h3>
                         <div id="players-list" class="players-list"></div>
-                    </div>
+    
+                        <!-- Neue Spieler-Status Anzeige -->
+                        <div class="players-status">
+                            <div class="status-row">
+                                <span>Menschliche Spieler: <span id="human-count">0</span></span>
+                                <span>KI-Spieler: <span id="ai-count">0</span></span>
+                            </div>
+                        </div>
+                </div>
 
                     <!-- Host Controls -->
                     <div id="host-controls" class="host-controls">
@@ -122,6 +130,13 @@
                 </div>
                 <button id="quitGameBtn" class="btn btn--danger btn--small">🚪 Spiel verlassen</button>
             </div>
+
+        <!-- NEU: Spieler-Übersicht im Spiel -->
+        <div class="game-players-overview">
+            <h3>🎮 Spieler in dieser Runde</h3>
+            <div id="game-players-list" class="game-players-grid"></div>
+        </div>
+
 
             <div class="game-content">
                 <!-- Current Player Info -->
