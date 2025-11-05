@@ -71,13 +71,14 @@ io.on('connection', (socket) => {
     });
 
     socket.on('start', ({ code }) => {
-        const g = games.get(code);
-        if (g) {
-            g.phase = 'playing';
-            g.dice = rollDice();
-            g.rolls = 3;
-            io.to(code).emit('room', g);
-        }
+    const g = games.get(code);
+    if (g) {
+        g.phase = 'playing';
+        g.turn = 0; // Host fängt IMMER an (Index 0)
+        g.dice = rollDice();
+        g.rolls = 3;
+        io.to(code).emit('room', g);
+    }
     });
 
     socket.on('roll', ({ code, kept }) => {
