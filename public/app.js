@@ -60,22 +60,16 @@ class KniffelMultiplayerClient {
     }
 
     setupSocketEvents() {
-        // Raum erstellt
-        this.socket.on('room_created', (data) => {
-            console.log('🏠 Raum erstellt:', data.roomCode);
-            this.gameState.roomCode = data.roomCode;
-            this.gameState.playerId = this.socket.id;
-            this.gameState.isHost = true;
-            this.updateGameState(data.gameState);
-            this.showScreen('waiting-room');
-        });
-
-        // Raum beigetreten
+            // Raum beigetreten
         this.socket.on('joined_room', (data) => {
-            console.log('🚪 Raum beigetreten');
+            console.log('🚪 Raum beigetreten:', data.gameState.roomCode);
             this.gameState.playerId = this.socket.id;
+            this.gameState.roomCode = data.gameState.roomCode; // WICHTIG: Raumcode explizit setzen
+            this.gameState.isHost = data.player.isHost; // Host-Status setzen
             this.updateGameState(data.gameState);
             this.showScreen('waiting-room');
+            this.renderUI(); // Sofort rendern
+            console.log('✅ State aktualisiert - Raum:', this.gameState.roomCode, 'Host:', this.gameState.isHost);
         });
 
         // Spieler beigetreten

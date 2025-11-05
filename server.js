@@ -396,16 +396,13 @@ io.on('connection', (socket) => {
     // Raum beitreten
     socket.on('join_room', ({ roomCode, playerName }) => {
     console.log(`🚪 Spieler ${playerName} versucht Raum ${roomCode} beizutreten`);
-    console.log(`🗂️ Verfügbare Räume:`, Array.from(gameManager.games.keys()));
     
     const normalizedRoomCode = roomCode.trim().toUpperCase();
     const game = gameManager.getGame(normalizedRoomCode);
     
     if (!game) {
         console.log(`❌ Raum ${normalizedRoomCode} nicht gefunden`);
-        socket.emit('error', { 
-            message: `Raum ${normalizedRoomCode} nicht gefunden. Verfügbare Räume: ${Array.from(gameManager.games.keys()).join(', ')}` 
-        });
+        socket.emit('error', { message: `Raum ${normalizedRoomCode} nicht gefunden` });
         return;
     }
     
@@ -414,20 +411,29 @@ io.on('connection', (socket) => {
         return;
     }
     
-    const player = game.addPlayer(socket.id, playerName);
+    const player = game.addPlayer(socket.id, playerName, false); // false = nicht Host
     socket.join(normalizedRoomCode);
     gameManager.players.set(socket.id, normalizedRoomCode);
     
-    console.log(`✅ ${playerName} erfolgreich Raum ${normalizedRoomCode} beigetreten`);
+    const currentGameState = game.getGameState();
     
+    console.log(`✅ ${playerName} beigetreten. Spieler im Raum:`, currentGameState.players.length);
+    
+    // An beitretenden Spieler: Vollständiger State
     socket.emit('joined_room', {
         player: player,
-        gameState: game.getGameState()
+        gameState: currentGameState
     });
     
+    // An ALLE anderen im Raum: Update mit neuem Spieler
     socket.to(normalizedRoomCode).emit('player_joined', {
         player: player,
-        gameState: game.getGameState()
+        gameState: currentGameState
+    });
+    
+    // WICHTIG: Auch an den Host nochmal den kompletten State senden
+    io.to(normalizedRoomCode).emit('game_state_update', {
+        gameState: currentGameState
     });
 });
 
