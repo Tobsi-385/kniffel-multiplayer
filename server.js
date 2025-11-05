@@ -74,12 +74,14 @@ io.on('connection', (socket) => {
     const g = games.get(code);
     if (g) {
         g.phase = 'playing';
-        g.turn = 0; // Host fängt IMMER an (Index 0)
+        // Host ist immer der erste Spieler (Index 0)
+        g.turn = 0;
         g.dice = rollDice();
         g.rolls = 3;
+        console.log(`🎮 Spiel ${code} gestartet. ${g.players[0].name} am Zug`);
         io.to(code).emit('room', g);
     }
-    });
+});
 
     socket.on('roll', ({ code, kept }) => {
         const g = games.get(code);
