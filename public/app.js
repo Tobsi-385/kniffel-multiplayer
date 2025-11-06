@@ -39,7 +39,7 @@ function rollDice() {
         diceElements.forEach(die => {
             die.classList.remove('rolling');
         });
-    }, 5000);
+    }, 1000);
 }
 
 function selectScore(cat) {
