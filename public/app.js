@@ -27,8 +27,19 @@ function startGame() {
 }
 
 function rollDice() {
-    const kept = Array.from(document.querySelectorAll('.dice-item')).map(d => d.classList.contains('kept'));
-    socket.emit('roll', { code: game.roomCode, kept });
+    const diceElements = document.querySelectorAll('.dice-item');
+    diceElements.forEach(die => {
+        die.classList.add('rolling');
+    });
+
+    // Würfelwurf mit Animation, nach 500ms das Würfelergebnis senden
+    setTimeout(() => {
+        const kept = Array.from(diceElements).map(d => d.classList.contains('kept'));
+        socket.emit('roll', { code: game.roomCode, kept });
+        diceElements.forEach(die => {
+            die.classList.remove('rolling');
+        });
+    }, 500);
 }
 
 function selectScore(cat) {
