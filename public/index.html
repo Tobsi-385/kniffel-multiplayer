@@ -7,122 +7,92 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- ===== MODUS-AUSWAHL SCREEN (NEU) ===== -->
-    <div id="modeSelectionScreen" class="screen">
-        <div class="container">
-            <h1>🎲 Kniffel</h1>
-            <p style="font-size: 18px; color: #666; margin-bottom: 24px;">Wähle einen Spielmodus:</p>
-            <div style="display: flex; flex-direction: column; gap: 16px; margin: 32px 0;">
-                <button class="btn btn--primary" style="min-height: 60px; font-size: 18px; font-weight: bold;" onclick="selectGameMode('singleplayer')">
-                    👤 Singleplayer
-                </button>
-                <button class="btn btn--primary" style="min-height: 60px; font-size: 18px; font-weight: bold;" onclick="selectGameMode('multiplayer')">
-                    👥 Multiplayer
-                </button>
-            </div>
-        </div>
+  <div class="app">
+    <!-- START SCREEN -->
+    <div id="startScreen" class="screen">
+      <div class="card">
+        <h1>🎲 Kniffel Multiplayer</h1>
+        <hr>
+        
+        <h2>Raum erstellen oder beitreten</h2>
+        
+        <input type="text" id="name" placeholder="Dein Name" maxlength="20">
+        
+        <button onclick="createRoom()">➕ Raum erstellen</button>
+        
+        <hr>
+        
+        <input type="text" id="code" placeholder="Raum-Code" maxlength="4" style="text-transform: uppercase;">
+        <button onclick="joinRoom()">🔗 Beitreten</button>
+      </div>
     </div>
 
-    <!-- ===== SINGLEPLAYER START SCREEN (NEU) ===== -->
-    <div id="singleplayerStartScreen" class="screen" style="display: none;">
-        <div class="container" style="max-width: 600px; margin: 50px auto; padding: 32px; background: white; border-radius: 12px; border: 1px solid #ddd; text-align: center;">
-            <h1 style="color: #218085; margin-bottom: 24px;">🎲 Kniffel - Singleplayer</h1>
-            <p style="margin-bottom: 16px;">Spiele gegen den Computer!</p>
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 12px;">Dein Name:</label>
-                <input id="spName" type="text" class="form-control" placeholder="Dein Name" maxlength="20">
-            </div>
-            <button class="btn btn--primary" style="width: 100%; margin-top: 16px; margin-bottom: 8px;" onclick="startSingleplayerGame()">
-                Spiel starten
-            </button>
-            <button class="btn btn--secondary" style="width: 100%;" onclick="goBackToModes()">
-                Zurück
-            </button>
+    <!-- WAITING SCREEN -->
+    <div id="waitingScreen" class="screen">
+      <div class="card">
+        <h1>⏳ Warte auf Spieler</h1>
+        
+        <div class="header">
+          <div>
+            <strong>Raum-Code:</strong><br>
+            <span id="roomCode" style="font-size: 24px; color: #2563eb; font-weight: bold;">XXXX</span>
+          </div>
+          <div>
+            <strong>Spieler:</strong><br>
+            <span id="playerCount">1/4</span>
+          </div>
         </div>
+
+        <div id="playerList"></div>
+
+        <hr>
+
+        <div id="startContainer"></div>
+      </div>
     </div>
 
-    <!-- ===== MULTIPLAYER START SCREEN (ANGEPASST) ===== -->
-    <div id="multiplayerStartScreen" class="screen" style="display: none;">
-        <div class="container" style="max-width: 600px; margin: 50px auto; padding: 32px; background: white; border-radius: 12px; border: 1px solid #ddd; text-align: center;">
-            <h1 style="color: #218085; margin-bottom: 24px;">🎲 Kniffel - Multiplayer</h1>
-            <p style="margin-bottom: 16px;">Raum erstellen oder beitreten</p>
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 12px;">Dein Name:</label>
-                <input id="mpName" type="text" class="form-control" placeholder="Dein Name" maxlength="20">
-            </div>
-            <button class="btn btn--primary" style="width: 100%; margin-top: 16px; margin-bottom: 16px;" onclick="createRoom()">
-                ➕ Raum erstellen
-            </button>
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 12px;">Raum-Code:</label>
-                <input id="code" type="text" class="form-control" placeholder="RAUM-CODE" maxlength="4">
-            </div>
-            <button class="btn btn--primary" style="width: 100%; margin-top: 16px; margin-bottom: 16px;" onclick="joinRoom()">
-                🔗 Beitreten
-            </button>
-            <button class="btn btn--secondary" style="width: 100%;" onclick="goBackToModes()">
-                Zurück
-            </button>
+    <!-- GAME SCREEN -->
+    <div id="gameScreen" class="screen">
+      <div class="header">
+        <div>
+          <span id="turn">🎮 Spielername am Zug</span><br>
+          <small id="rolls">Würfe: 3/3</small>
         </div>
+        <div style="text-align: right;">
+          <span id="roomCode">Raum: XXXX</span><br>
+          <small><a href="javascript:location.reload()" style="color: #2563eb; text-decoration: none;">🔄 Neu laden</a></small>
+        </div>
+      </div>
+
+      <div class="dice-area">
+        <div id="dice"></div>
+        <button id="rollBtn" onclick="rollDice()">🎲 Würfeln</button>
+        <small style="display: block; margin-top: 10px; color: #999;">Klick auf Würfel um sie zu halten</small>
+      </div>
+
+      <div id="playerInfo" style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;"></div>
+
+      <div id="scores"></div>
+
+      <hr style="margin: 20px 0;">
+
+      <h3>💬 Chat</h3>
+      <div id="chatLog" style="background: white; border: 1px solid #ddd; border-radius: 4px; height: 150px; overflow-y: auto; padding: 10px; margin-bottom: 10px; font-size: 12px;"></div>
+      <div style="display: flex; gap: 5px;">
+        <input type="text" id="chatInput" placeholder="Nachricht..." maxlength="200" style="flex: 1;">
+        <button onclick="sendChat()" style="width: 50px;">📤</button>
+      </div>
     </div>
 
-    <!-- ===== WAITINGSCREEN (bestehend, keine Änderung nötig) ===== -->
-    <div id="waitingScreen" class="screen" style="display: none;">
-        <div class="container" style="max-width: 600px; margin: 50px auto; padding: 32px; background: white; border-radius: 12px; border: 1px solid #ddd; text-align: center;">
-            <h1>⏳ Warten auf Spieler</h1>
-            <p>Raum-Code: <strong id="roomCode">--</strong></p>
-            <p>Spieler: <span id="playerCount">1/4</span></p>
-            <div id="playerList" style="margin-bottom: 16px;"></div>
-            <div id="startContainer"></div>
-            <button class="btn btn--secondary" style="width: 100%;" onclick="goBackToModes()">
-                Abbrechen
-            </button>
-        </div>
+    <!-- GAME OVER SCREEN -->
+    <div id="gameOverScreen" class="screen">
+      <div class="card">
+        <div id="standings"></div>
+      </div>
     </div>
+  </div>
 
-    <!-- ===== GAME SCREEN (bestehend) ===== -->
-    <div id="gameScreen" class="screen" style="display: none;">
-        <div style="max-width: 1200px; margin: 0 auto; padding: 16px;">
-            <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #ddd; text-align: center; margin-bottom: 16px;">
-                <h2 id="turn">🎮 Spieler am Zug</h2>
-                <p id="rolls" style="margin: 4px 0;">Würfe: 3/3</p>
-                <p id="roomCode" style="margin: 4px 0;">Raum: --</p>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                <!-- Würfel-Bereich -->
-                <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #ddd;">
-                    <h3 style="margin-top: 0;">🎲 Würfel</h3>
-                    <div id="dice" style="display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; justify-content: center;"></div>
-                    <button id="rollBtn" class="btn btn--primary" style="width: 100%; margin-top: 16px;" onclick="rollDice()">
-                        🎲 Würfeln
-                    </button>
-                    <p style="font-size: 12px; color: #666; margin: 8px 0 0 0;">Klick auf Würfel um sie zu halten</p>
-                </div>
-
-                <!-- Punkte-Tabelle -->
-                <div style="background: white; padding: 16px; border-radius: 12px; border: 1px solid #ddd; overflow-x: auto;">
-                    <h3 style="margin-top: 0;">📊 Punkteblatt</h3>
-                    <div id="scores"></div>
-                </div>
-            </div>
-
-            <div id="playerInfo" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 16px;"></div>
-        </div>
-    </div>
-
-    <!-- ===== GAME OVER SCREEN (bestehend) ===== -->
-    <div id="gameOverScreen" class="screen" style="display: none;">
-        <div class="container" style="max-width: 600px; margin: 50px auto; padding: 32px; background: white; border-radius: 12px; border: 1px solid #ddd; text-align: center;">
-            <h1>🏆 Spiel vorbei!</h1>
-            <p id="winner" style="font-size: 24px; margin: 20px 0;"></p>
-            <button class="btn btn--primary" style="width: 100%;" onclick="goBackToModes()">
-                🏠 Zur Startseite
-            </button>
-        </div>
-    </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="app.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
