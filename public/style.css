@@ -904,8 +904,8 @@ hr {
 }
 
 .dice-item {
-  width: 600px;
-  height: 600px;
+  width: 100px;
+  height: 100px;
   background: var(--color-surface);
   border: 2px solid var(--color-border);
   border-radius: var(--radius-sm);
