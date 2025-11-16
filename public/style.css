@@ -912,7 +912,7 @@ hr {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-2xl);
+  font-size: 86;
   font-weight: var(--font-weight-bold);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);
