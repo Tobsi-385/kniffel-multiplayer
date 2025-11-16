@@ -147,7 +147,8 @@ function renderGame() {
   game.dice.forEach((d, i) => {
     const el = document.createElement('div');
     el.className = 'dice-item';
-    el.textContent = '⚀⚁⚂⚃⚄⚅'[d-1];
+    const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+    el.textContent = diceFaces[d - 1];;
     
     // Nur halten wenn noch Würfe übrig sind
     if (game.rolls < 3) {
