@@ -71,7 +71,7 @@ function updateWaitingScreen() {
     // Nur Host kann Spiel starten
     const startContainer = document.getElementById('startContainer');
     startContainer.innerHTML = '';
-    if (isHost && game.phase === 'waiting' && game.players.length > 1) {
+    if (isHost && game.phase === 'waiting' && game.players.length >= 1) {
         const btn = document.createElement('button');
         btn.textContent = 'Spiel starten';
         btn.onclick = startGame;
