@@ -90,17 +90,17 @@ function rollDice() {
   diceElements.forEach(die => {
     die.classList.add('rolling');
   });
+
   setTimeout(() => {
     const kept = Array.from(diceElements).map(d => d.classList.contains('kept'));
     socket.emit('roll', { code: game.roomCode, kept });
+    
     diceElements.forEach(die => {
       die.classList.remove('rolling');
       die.classList.remove('kept');
     });
   }, 1000);
 }
-
-
 
 function selectScore(cat) {
   // Überprüfe ob bereits genutzt
@@ -141,8 +141,8 @@ function renderGame() {
   document.getElementById('rolls').textContent = `Würfe: ${game.rolls}/3`;
   document.getElementById('roomCode').textContent = `Raum: ${game.roomCode}`;
 
-// Würfel - MIT AUTOMATISCHEM HALTEN
- const diceDiv = document.getElementById('dice');
+  // Würfel
+  const diceDiv = document.getElementById('dice');
   diceDiv.innerHTML = '';
   game.dice.forEach((d, i) => {
     const el = document.createElement('div');

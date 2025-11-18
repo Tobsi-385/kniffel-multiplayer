@@ -181,16 +181,25 @@ io.on('connection', (socket) => {
   });
 
   // Würfel werfen
-socket.on('roll', ({ code }) => {
-  const game = games.get(code);
-  if (!game) return socket.emit('error', 'Spiel nicht gefunden');
-  
-  const newDice = rollDice();
-  game.dice = newDice;
-  game.rolls--;
-  
-  io.to(code).emit('update', game);
-});
+  socket.on('roll', ({ code, kept }) => {
+    const g = games.get(code);
+    if (!g || g.rolls <= 0) return;
+
+    // Validierung
+    if (kept.length !== g.dice.length) return;
+
+    g.dice = g.dice.map((d, i) => kept[i] ? d : Math.floor(Math.random()*6)+1);
+    g.rolls--;
+
+    g.gameLog.push({
+      player: g.players[g.turn].name,
+      action: 'roll',
+      dice: g.dice,
+      rollsLeft: g.rolls
+    });
+
+    io.to(code).emit('room', g);
+  });
 
   // Score setzen
   socket.on('score', ({ code, cat }) => {
