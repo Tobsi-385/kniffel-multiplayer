@@ -1,6 +1,5 @@
 const socket = io();
 let game = null, isHost = false;
-let heldDice = [false, false, false, false, false];  // ← NEU: Speichert gehaltene Würfel
 const cats = ['ones','twos','threes','fours','fives','sixes','three','four','full','small','large','kniffel','chance'];
 const catNames = ['Einser','Zweier','Dreier','Vierer','Fünfer','Sechser','3er-Pasch','4er-Pasch','Full House','Kleine Str.','Große Str.','Kniffel','Chance'];
 
@@ -86,28 +85,21 @@ function startGame() {
 
 function rollDice() {
   if (game.rolls <= 0) return showError('Keine Würfe mehr übrig!');
-  
   const diceElements = document.querySelectorAll('.dice-item');
-  
-  // Animiere nur NICHT gehaltene Würfel
-  diceElements.forEach((die, i) => {
-    if (!heldDice[i]) {  // ← Nur nicht gehaltene Würfel animieren
-      die.classList.add('rolling');
-    }
+  // Animiere Würfel
+  diceElements.forEach(die => {
+    die.classList.add('rolling');
   });
-  
   setTimeout(() => {
-    // Sende gehaltene Würfel an Server
-    socket.emit('roll', { code: game.roomCode, kept: heldDice });
-    
-    // Entferne Animation
+    const kept = Array.from(diceElements).map(d => d.classList.contains('kept'));
+    socket.emit('roll', { code: game.roomCode, kept });
     diceElements.forEach(die => {
       die.classList.remove('rolling');
+      die.classList.remove('kept');
     });
-    
-    console.log('🎲 Würfel geworfen. Gehalten:', heldDice);
   }, 1000);
 }
+
 
 
 function selectScore(cat) {
@@ -150,56 +142,22 @@ function renderGame() {
   document.getElementById('roomCode').textContent = `Raum: ${game.roomCode}`;
 
 // Würfel - MIT AUTOMATISCHEM HALTEN
-const diceDiv = document.getElementById('dice');
-diceDiv.innerHTML = '';
-const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-
-game.dice.forEach((d, i) => {
-  const el = document.createElement('div');
-  el.className = 'dice-item';
-  el.textContent = diceFaces[d - 1];
-  el.dataset.index = i;
-  
-  // Inline Styles für größere Würfel
-  el.style.fontSize = '72px';
-  el.style.width = '120px';
-  el.style.height = '120px';
-  el.style.display = 'flex';
-  el.style.alignItems = 'center';
-  el.style.justifyContent = 'center';
-  
-  // Zeige gehaltenen Zustand an (falls bereits gehalten)
-  if (heldDice[i]) {
-    el.classList.add('kept');
-    el.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
-    el.style.borderColor = '#10b981';
-    el.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.5)';
-  }
-  
-  // Nur halten wenn noch Würfe übrig sind
-  if (game.rolls < 3) {
-    el.onclick = () => {
-      heldDice[i] = !heldDice[i];  // ← Toggle held state
-      el.classList.toggle('kept');
-      
-      // Visuelles Feedback beim Halten
-      if (heldDice[i]) {
-        el.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
-        el.style.borderColor = '#10b981';
-        el.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.5)';
-        console.log(`🎲 Würfel ${i+1} wird gehalten`);
-      } else {
-        el.style.backgroundColor = '';
-        el.style.borderColor = '';
-        el.style.boxShadow = '';
-        console.log(`🎲 Würfel ${i+1} wird freigegeben`);
-      }
-    };
-    el.style.cursor = 'pointer';
-  }
-  
-  diceDiv.appendChild(el);
-});
+ const diceDiv = document.getElementById('dice');
+  diceDiv.innerHTML = '';
+  game.dice.forEach((d, i) => {
+    const el = document.createElement('div');
+    el.className = 'dice-item';
+    const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+    el.textContent = diceFaces[d - 1];;
+    
+    // Nur halten wenn noch Würfe übrig sind
+    if (game.rolls < 3) {
+      el.onclick = () => el.classList.toggle('kept');
+      el.style.cursor = 'pointer';
+    }
+    
+    diceDiv.appendChild(el);
+  });
 
   // Buttons
   document.getElementById('rollBtn').disabled = game.rolls === 0 || current.id !== socket.id;

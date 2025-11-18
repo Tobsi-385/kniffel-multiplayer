@@ -181,23 +181,12 @@ io.on('connection', (socket) => {
   });
 
   // Würfel werfen
-  socket.on('roll', ({ code, kept }) => {
+socket.on('roll', ({ code }) => {
   const game = games.get(code);
   if (!game) return socket.emit('error', 'Spiel nicht gefunden');
   
-  // Würfle neue Würfel
   const newDice = rollDice();
-  
-  // Behalte gehaltene Würfel, ersetze nur nicht gehaltene
-  if (kept && Array.isArray(kept)) {
-    game.dice = game.dice.map((oldValue, i) => 
-      kept[i] ? oldValue : newDice[i]
-    );
-    console.log(`🎲 Gewürfelt. Gehalten: ${kept.map((k, i) => k ? i+1 : null).filter(x => x)}`);
-  } else {
-    game.dice = newDice;
-  }
-  
+  game.dice = newDice;
   game.rolls--;
   
   io.to(code).emit('update', game);
