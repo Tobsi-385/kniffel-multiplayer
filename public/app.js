@@ -141,23 +141,44 @@ function renderGame() {
   document.getElementById('rolls').textContent = `Würfe: ${game.rolls}/3`;
   document.getElementById('roomCode').textContent = `Raum: ${game.roomCode}`;
 
-  // Würfel
-  const diceDiv = document.getElementById('dice');
-  diceDiv.innerHTML = '';
-  game.dice.forEach((d, i) => {
-    const el = document.createElement('div');
-    el.className = 'dice-item';
-    const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-    el.textContent = diceFaces[d - 1];;
-    
-    // Nur halten wenn noch Würfe übrig sind
-    if (game.rolls < 3) {
-      el.onclick = () => el.classList.toggle('kept');
-      el.style.cursor = 'pointer';
-    }
-    
-    diceDiv.appendChild(el);
-  });
+  // Würfel - VERBESSERT mit größerer Darstellung
+const diceDiv = document.getElementById('dice');
+diceDiv.innerHTML = '';
+const diceFaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+
+game.dice.forEach((d, i) => {
+  const el = document.createElement('div');
+  el.className = 'dice-item';
+  el.textContent = diceFaces[d - 1];
+  
+  // Inline Styles für größere Würfel
+  el.style.fontSize = '72px';
+  el.style.width = '120px';
+  el.style.height = '120px';
+  el.style.display = 'flex';
+  el.style.alignItems = 'center';
+  el.style.justifyContent = 'center';
+  
+  // Nur halten wenn noch Würfe übrig sind
+  if (game.rolls < 3) {
+    el.onclick = () => {
+      el.classList.toggle('kept');
+      // Visuelles Feedback beim Halten
+      if (el.classList.contains('kept')) {
+        el.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
+        el.style.borderColor = '#10b981';
+        el.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.5)';
+      } else {
+        el.style.backgroundColor = '';
+        el.style.borderColor = '';
+        el.style.boxShadow = '';
+      }
+    };
+    el.style.cursor = 'pointer';
+  }
+  
+  diceDiv.appendChild(el);
+});
 
   // Buttons
   document.getElementById('rollBtn').disabled = game.rolls === 0 || current.id !== socket.id;
