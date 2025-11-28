@@ -164,7 +164,7 @@ socket.on('gameStart', (gameData) => {
 socket.on('gameOver', (data) => {
   const winner = data.winner;      // { name, score }
   const totalScore = winner.score; // Gesamtpunkte vom Server, inkl. Bonus
-  alert(`🏆 Gewinner: ${winner.name} mit ${totalScore} Punkten!\n(inkl. Bonus)`);
+  alert(`🏆 Gewinner: ${winner.name} mit ${totalScore} Punkten!`);
   leaveRoom();
 });
 
