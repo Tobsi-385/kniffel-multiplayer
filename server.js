@@ -29,7 +29,12 @@ function calculateScore(dice, category) {
   const counts = {};
   dice.forEach(d => counts[d] = (counts[d] || 0) + 1);
   const values = Object.values(counts);
-
+  
+  // Helper: Prüfe ob Straße vorhanden ist
+  const hasSequence = (start) => {
+    return [start, start+1, start+2, start+3].every(n => counts[n] >= 1);
+  };
+  
   const scores = {
     'ones': dice.filter(d => d === 1).length,
     'twos': dice.filter(d => d === 2).length * 2,
@@ -40,12 +45,11 @@ function calculateScore(dice, category) {
     'three': values.some(v => v >= 3) ? sum : 0,
     'four': values.some(v => v >= 4) ? sum : 0,
     'full': values.includes(3) && values.includes(2) ? 25 : 0,
-    'small': ([1,2,3,4].every(n => counts[n]) || [2,3,4,5].every(n => counts[n])) ? 30 : 0,
-    'large': ([1,2,3,4,5].every(n => counts[n]) || [2,3,4,5,6].every(n => counts[n])) ? 40 : 0,
+    'small': (hasSequence(1) || hasSequence(2) || hasSequence(3)) ? 30 : 0,  // ✅ KLEINE STRASSE
+    'large': (hasSequence(1) && hasSequence(2)) ? 40 : 0,  // ✅ GROSSE STRASSE (1-2-3-4-5)
     'kniffel': values.includes(5) ? 50 : 0,
     'chance': sum
   };
-
   return scores[category] || 0;
 }
 
