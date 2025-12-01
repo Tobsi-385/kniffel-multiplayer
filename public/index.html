@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENTWICKLUNG</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Start Screen -->
+    <div id="start" class="screen">
+        <div class="container">
+            <h1>🎲 Kniffel Online 🎲</h1>
+            <input type="text" id="name" placeholder="Dein Name" maxlength="20" class="form-control">
+            <button onclick="createRoom()" class="btn btn--primary btn--full-width">Raum erstellen</button>
+            <div class="divider">oder</div>
+            <input type="text" id="code" placeholder="Raum-Code (4 Zeichen)" maxlength="4" class="form-control">
+            <button onclick="joinRoom()" class="btn btn--secondary btn--full-width">Raum beitreten</button>
+            <div id="error" class="error"></div>
+        </div>
+    </div>
+
+    <!-- Lobby Screen -->
+    <div id="lobby" class="screen" style="display:none">
+        <div class="container">
+            <h1>🎲 Kniffel Lobby</h1>
+            <div class="room-code">
+                <span>Raum-Code:</span>
+                <strong id="roomCode"></strong>
+            </div>
+            <div class="players-list">
+                <h3>Spieler:</h3>
+                <ul id="playersList"></ul>
+            </div>
+            <button id="startBtn" onclick="startGame()" class="btn btn--primary btn--full-width" style="display:none">
+                Spiel starten
+            </button>
+            <button onclick="leaveRoom()" class="btn btn--secondary btn--full-width">Raum verlassen</button>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game" class="screen" style="display:none">
+        <div class="game-container">
+            <!-- Left Side: Dice and Actions -->
+            <div class="game-left">
+                <div class="game-header">
+                    <h2>🎲 Kniffel</h2>
+                    <div class="room-info">Raum: <strong id="gameRoomCode"></strong></div>
+                </div>
+
+                <div class="turn-indicator">
+                    <span id="currentPlayerName"></span> ist dran
+                </div>
+
+                <div class="dice-section">
+                    <h3>Würfel</h3>
+                    <div id="dice" class="dice-container"></div>
+                </div>
+
+                <div class="actions-section">
+                    <div class="roll-info">
+                        <span>Würfe übrig: <strong id="rollsLeft">3</strong></span>
+                    </div>
+                    <button id="rollBtn" onclick="roll()" class="btn btn--primary btn--full-width">
+                        🎲 Würfeln
+                    </button>
+                </div>
+
+                <div class="game-controls">
+                    <button onclick="leaveRoom()" class="btn btn--outline btn--sm">
+                        Spiel verlassen
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Side: Scorecard -->
+            <div class="game-right">
+                <div class="scorecard-header">
+                    <h3>Punktetabelle</h3>
+                </div>
+                <div id="scorecard" class="scorecard"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
