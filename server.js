@@ -29,27 +29,41 @@ function calculateScore(dice, category) {
   const counts = {};
   dice.forEach(d => counts[d] = (counts[d] || 0) + 1);
   const values = Object.values(counts);
-  
-  // Helper: Prüfe ob Straße vorhanden ist
-  const hasSequence = (start) => {
-    return [start, start+1, start+2, start+3].every(n => counts[n] >= 1);
-  };
-  
+
+  // Eindeutige, sortierte Werte
+  const unique = [...new Set(dice)].sort((a, b) => a - b);
+
+  const isSmallStraight =
+    unique.length >= 4 &&
+    (
+      (unique.includes(1) && unique.includes(2) && unique.includes(3) && unique.includes(4)) ||
+      (unique.includes(2) && unique.includes(3) && unique.includes(4) && unique.includes(5)) ||
+      (unique.includes(3) && unique.includes(4) && unique.includes(5) && unique.includes(6))
+    );
+
+  const isLargeStraight =
+    unique.length === 5 &&
+    (
+      (unique[0] === 1 && unique[1] === 2 && unique[2] === 3 && unique[3] === 4 && unique[4] === 5) ||
+      (unique[0] === 2 && unique[1] === 3 && unique[2] === 4 && unique[3] === 5 && unique[4] === 6)
+    );
+
   const scores = {
-    'ones': dice.filter(d => d === 1).length,
-    'twos': dice.filter(d => d === 2).length * 2,
-    'threes': dice.filter(d => d === 3).length * 3,
-    'fours': dice.filter(d => d === 4).length * 4,
-    'fives': dice.filter(d => d === 5).length * 5,
-    'sixes': dice.filter(d => d === 6).length * 6,
-    'three': values.some(v => v >= 3) ? sum : 0,
-    'four': values.some(v => v >= 4) ? sum : 0,
-    'full': values.includes(3) && values.includes(2) ? 25 : 0,
-    'small': (hasSequence(1) || hasSequence(2) || hasSequence(3)) ? 30 : 0,  // ✅ KLEINE STRASSE
-    'large': (hasSequence(1) || hasSequence(2)) ? 40 : 0,  // ✅ 1-2-3-4-5 ODER 2-3-4-5-6
-    'kniffel': values.includes(5) ? 50 : 0,
-    'chance': sum
+    ones:   dice.filter(d => d === 1).length,
+    twos:   dice.filter(d => d === 2).length * 2,
+    threes: dice.filter(d => d === 3).length * 3,
+    fours:  dice.filter(d => d === 4).length * 4,
+    fives:  dice.filter(d => d === 5).length * 5,
+    sixes:  dice.filter(d => d === 6).length * 6,
+    three:  values.some(v => v >= 3) ? sum : 0,
+    four:   values.some(v => v >= 4) ? sum : 0,
+    full:   values.includes(3) && values.includes(2) ? 25 : 0,
+    small:  isSmallStraight ? 30 : 0,
+    large:  isLargeStraight ? 40 : 0,
+    kniffel: values.includes(5) ? 50 : 0,
+    chance: sum
   };
+
   return scores[category] || 0;
 }
 
