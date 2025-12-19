@@ -804,3 +804,46 @@ select.form-control,
         opacity: 0;
     }
 }
+
+/* Responsive / Mobile adjustments */
+@media (max-width: 900px) {
+  :root { --space-32: 20px; }
+  .container { max-width: 720px; padding: var(--space-16); }
+  .game-container { flex-direction: column; gap: var(--space-16); padding: var(--space-16); }
+  .game-left, .game-right { flex: none; width: 100%; min-width: auto; max-width: 100%; }
+  .dice { width: 44px; height: 44px; font-size: 1.6rem; }
+  .dice.locked { width: 46px; height: 46px; }
+  .finale-card { padding: var(--space-20); max-width: 720px; }
+  .trophy-emoji { font-size: 56px; }
+  .winner-title { font-size: var(--font-size-3xl); }
+  .scorecard table { font-size: 14px; }
+  .final-score-table { font-size: 0.8rem; }
+  .btn, .btn--primary, .btn--secondary, .btn--outline { width: 100%; display: inline-flex; justify-content:center; }
+  .btn + .btn { margin-top: var(--space-8); }
+  .room-code strong { font-size: var(--font-size-2xl); letter-spacing: normal; }
+  .players-list li { font-size: var(--font-size-sm); padding: var(--space-8); }
+  .scorecard { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .final-score-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+@media (max-width: 480px) {
+  :root { --gap: 12px; --space-24: 16px; --space-16: 12px; }
+  .container { padding: var(--space-12); max-width: 100%; }
+  .game-left { padding: var(--space-16); }
+  .dice { width: 40px; height: 40px; font-size: 1.4rem; }
+  .dice.locked { width: 42px; height: 42px; }
+  .winner-title { font-size: var(--font-size-xl); }
+  .trophy-emoji { font-size: 48px; margin-bottom: var(--space-12); }
+  .finale-card { padding: var(--space-16); border-radius: 12px; }
+  .final-score-table th, .final-score-table td { padding: 6px 6px; }
+  .scorecard th { font-size: var(--font-size-xs); }
+  .scorecard td { font-size: 0.92rem; padding: 6px; }
+  .btn { padding: 10px 12px; }
+  .players-list li { padding: var(--space-8); font-size: var(--font-size-sm); }
+  .final-results { gap: var(--space-8); }
+  .final-table-title { font-size: var(--font-size-lg); }
+}
+
+/* Small touch: ensure final table still scales down if needed, but allow horizontal scroll as fallback */
+.final-score-table { max-width: 100%; }
+.final-score-table-wrap { width: 100%; }
