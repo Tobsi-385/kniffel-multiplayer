@@ -213,8 +213,9 @@ io.on('connection', (socket) => {
     const g = games.get(code);
     if (!g) return;
 
-    // Verifiziere, dass der anfragende Socket auch der aktuelle Spieler ist
-    const p = g.players[g.turn];
+    try {
+      // Verifiziere, dass der anfragende Socket auch der aktuelle Spieler ist
+      let p = g.players[g.turn];
     if (!p) {
       socket.emit('error', 'Spieler nicht gefunden');
       return;
@@ -235,26 +236,31 @@ io.on('connection', (socket) => {
       }
     }
 
-    // Logging zur Fehlersuche (zeigt dice, player und Kategorie)
-    console.log(`🔢 score request: room=${code} player=${p.name} cat=${cat} dice=[${g.dice}]`);
+      // Logging zur Fehlersuche (zeigt dice, player und Kategorie)
+      console.log(`🔢 score request: room=${code} player=${p.name} cat=${cat} dice=[${g.dice}]`);
 
-    // Validierung: Kategorie bereits genutzt?
-    if (isCategoryUsed(p.scores, cat)) {
-      socket.emit('error', 'Kategorie bereits genutzt!');
+      // Validierung: Kategorie bereits genutzt?
+      if (isCategoryUsed(p.scores, cat)) {
+        socket.emit('error', 'Kategorie bereits genutzt!');
+        return;
+      }
+
+      const score = calculateScore(g.dice, cat);
+      p.scores[cat] = score;
+
+      g.gameLog.push({
+        player: p.name,
+        action: 'score',
+        category: cat,
+        points: score
+      });
+
+      console.log(`✅ scored: ${p.name} -> ${cat} = ${score}`);
+    } catch (err) {
+      console.error('❌ Fehler im score-Handler:', err);
+      socket.emit('error', 'Interner Serverfehler beim Setzen der Punkte');
       return;
     }
-
-    const score = calculateScore(g.dice, cat);
-    p.scores[cat] = score;
-
-    g.gameLog.push({
-      player: p.name,
-      action: 'score',
-      category: cat,
-      points: score
-    });
-
-    console.log(`✅ scored: ${p.name} -> ${cat} = ${score}`);
 
     // Überprüfe ob Spiel vorbei ist
     const allCats = ['ones','twos','threes','fours','fives','sixes','three','four','full','small','large','kniffel','chance'];
