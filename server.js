@@ -213,7 +213,30 @@ io.on('connection', (socket) => {
     const g = games.get(code);
     if (!g) return;
 
+    // Verifiziere, dass der anfragende Socket auch der aktuelle Spieler ist
     const p = g.players[g.turn];
+    if (!p) {
+      socket.emit('error', 'Spieler nicht gefunden');
+      return;
+    }
+    if (p.id !== socket.id) {
+      // Toleranter Modus: falls der Server-turn abweicht (Race), aber der anfragende Socket
+      // tatsächlich ein Spieler im Raum ist und seine Kategorie noch frei ist, erlauben
+      // wir das Setzen und setzen g.turn auf diesen Spieler. Nur wenn das nicht zutrifft
+      // lehnen wir ab.
+      const idx = g.players.findIndex(pl => pl.id === socket.id);
+      if (idx !== -1 && (!g.players[idx].scores || g.players[idx].scores[cat] === undefined) && g.rolls < 3) {
+        console.warn(`⚠️ turn mismatch in room ${code}: serverTurn=${g.turn} but scoring from index=${idx}. Accepting and switching turn.`);
+        g.turn = idx;
+        p = g.players[g.turn];
+      } else {
+        socket.emit('error', 'Du bist nicht am Zug!');
+        return;
+      }
+    }
+
+    // Logging zur Fehlersuche (zeigt dice, player und Kategorie)
+    console.log(`🔢 score request: room=${code} player=${p.name} cat=${cat} dice=[${g.dice}]`);
 
     // Validierung: Kategorie bereits genutzt?
     if (isCategoryUsed(p.scores, cat)) {
@@ -230,6 +253,8 @@ io.on('connection', (socket) => {
       category: cat,
       points: score
     });
+
+    console.log(`✅ scored: ${p.name} -> ${cat} = ${score}`);
 
     // Überprüfe ob Spiel vorbei ist
     const allCats = ['ones','twos','threes','fours','fives','sixes','three','four','full','small','large','kniffel','chance'];
