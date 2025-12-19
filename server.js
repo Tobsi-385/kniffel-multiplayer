@@ -30,56 +30,35 @@ function calculateScore(dice, category) {
   dice.forEach(d => counts[d] = (counts[d] || 0) + 1);
   const values = Object.values(counts);
 
-  // Eindeutige, sortierte Werte
-  const unique = [...new Set(dice)].sort((a, b) => a - b);
-
-  const isSmallStraight =
-    unique.length >= 4 &&
-    (
-      (unique.includes(1) && unique.includes(2) && unique.includes(3) && unique.includes(4)) ||
-      (unique.includes(2) && unique.includes(3) && unique.includes(4) && unique.includes(5)) ||
-      (unique.includes(3) && unique.includes(4) && unique.includes(5) && unique.includes(6))
-    );
-
-  const isLargeStraight =
-    unique.length === 5 &&
-    (
-      (unique[0] === 1 && unique[1] === 2 && unique[2] === 3 && unique[3] === 4 && unique[4] === 5) ||
-      (unique[0] === 2 && unique[1] === 3 && unique[2] === 4 && unique[3] === 5 && unique[4] === 6)
-    );
-
   const scores = {
-    ones:   dice.filter(d => d === 1).length,
-    twos:   dice.filter(d => d === 2).length * 2,
-    threes: dice.filter(d => d === 3).length * 3,
-    fours:  dice.filter(d => d === 4).length * 4,
-    fives:  dice.filter(d => d === 5).length * 5,
-    sixes:  dice.filter(d => d === 6).length * 6,
-    three:  values.some(v => v >= 3) ? sum : 0,
-    four:   values.some(v => v >= 4) ? sum : 0,
-    full:   values.includes(3) && values.includes(2) ? 25 : 0,
-    small:  isSmallStraight ? 30 : 0,
-    large:  isLargeStraight ? 40 : 0,
-    kniffel: values.includes(5) ? 50 : 0,
-    chance: sum
+    'ones': dice.filter(d => d === 1).length,
+    'twos': dice.filter(d => d === 2).length * 2,
+    'threes': dice.filter(d => d === 3).length * 3,
+    'fours': dice.filter(d => d === 4).length * 4,
+    'fives': dice.filter(d => d === 5).length * 5,
+    'sixes': dice.filter(d => d === 6).length * 6,
+    'three': values.some(v => v >= 3) ? sum : 0,
+    'four': values.some(v => v >= 4) ? sum : 0,
+    'full': values.includes(3) && values.includes(2) ? 25 : 0,
+    'small': (
+                [1,2,3,4].every(n => counts[n]) ||
+                [2,3,4,5].every(n => counts[n]) ||
+                [3,4,5,6].every(n => counts[n])
+              ) ? 30 : 0,
+    'large': (
+                [1,2,3,4,5].every(n => counts[n]) ||
+                [2,3,4,5,6].every(n => counts[n])
+              ) ? 40 : 0,
+    'kniffel': values.includes(5) ? 50 : 0,
+    'chance': sum
   };
 
   return scores[category] || 0;
 }
 
-
-// Berechne Bonus
-function getBonus(playerScores) {
-  const upperSum = ['ones','twos','threes','fours','fives','sixes']
-    .reduce((sum, cat) => sum + (playerScores[cat] || 0), 0);
-  return upperSum >= 63 ? 35 : 0;
-}
-
-// Berechne Gesamtscore (mit Bonus!)
+// Berechne Gesamtscore
 function getTotalScore(playerScores) {
-  const baseScore = Object.values(playerScores).reduce((a, b) => a + (b || 0), 0);
-  const bonus = getBonus(playerScores);
-  return baseScore + bonus;
+  return Object.values(playerScores).reduce((a, b) => a + (b || 0), 0);
 }
 
 // Überprüfe ob Kategorie bereits genutzt wurde
@@ -276,9 +255,11 @@ io.on('connection', (socket) => {
         updatePlayerStats(t.name, t.score);
       });
 
+      // Sende die komplette Spielerliste mit Scores mit, damit Clients die Detailtabelle bauen können
       io.to(code).emit('gameOver', {
         winner: totals[0],
-        standings: totals
+        standings: totals,
+        players: g.players
       });
 
       console.log(`🏆 Spiel ${code} vorbei! Gewinner: ${totals[0].name} (${totals[0].score} Punkte)`);
@@ -352,6 +333,45 @@ io.on('connection', (socket) => {
         io.to(code).emit('room', game);
       }
     });
+  });
+
+  // Raum neu starten: Erzeuge neuen Raumcode und verschiebe alle verbundenen Spieler
+  socket.on('restartRoom', ({ code }) => {
+    const old = games.get(code);
+    if (!old) {
+      socket.emit('error', 'Alter Raum nicht gefunden');
+      return;
+    }
+
+    // Erzeuge neuen Raum
+    const newCode = generateRoomCode();
+    const newGame = {
+      roomCode: newCode,
+      players: old.players.map(p => ({ id: p.id, name: p.name, isHost: p.id === socket.id, scores: {} })),
+      turn: 0,
+      dice: [1,1,1,1,1],
+      rolls: 3,
+      phase: 'waiting',
+      chat: [],
+      startTime: null,
+      maxPlayers: old.maxPlayers,
+      gameLog: []
+    };
+
+    // Speichere neuen Raum
+    games.set(newCode, newGame);
+
+    // Für jeden Spieler: verlasse alten Raum und trete neuem bei (falls verbunden)
+    old.players.forEach(p => {
+      const s = io.sockets.sockets.get(p.id);
+      if (s) {
+        try { s.leave(code); } catch (e) {}
+        s.join(newCode);
+        s.emit('room', newGame);
+      }
+    });
+
+    console.log(`🔁 Raum ${code} neu gestartet -> neuer Raum ${newCode}`);
   });
 });
 

@@ -47,6 +47,19 @@ function leaveRoom() {
   show('start');
 }
 
+// Öffne die Lobby wieder für denselben Raum (lokal) — nützlich, um eine neue Runde zu starten
+function reopenLobbySameRoom() {
+  // Erstelle einen NEUEN Raum (neuer Code), damit der alte Raum/Score erhalten bleibt.
+  // Nur Spieler, die dem neuen Code beitreten, erscheinen anschließend in der Lobby.
+  // Bestimme den Namen des aktuellen Spielers (Fallback auf Eingabefeld)
+  const me = game && Array.isArray(game.players) ? game.players.find(p => p.id === socket.id) : null;
+  const myName = me && me.name ? me.name : (document.getElementById('name') && document.getElementById('name').value.trim()) || 'Spieler';
+
+  // Fordere den Server an, einen neuen Raum zu erstellen und alle aktuellen Spieler
+  // automatisch in den neuen Raum zu verschieben (sie bleiben zusammen).
+  socket.emit('restartRoom', { code: game ? game.roomCode : null });
+}
+
 function showError(msg) {
   const errorDiv = document.getElementById('error');
   errorDiv.textContent = msg;
@@ -163,11 +176,10 @@ socket.on('gameStart', (gameData) => {
 });
 
 socket.on('gameOver', (data) => {
-  const winner = data.winner;      // { name, score }
-  const totalScore = winner.score; // Gesamtpunkte vom Server
-  alert(`🏆 Gewinner: ${winner.name} mit ${totalScore} Punkten!`);
-  leaveRoom();
+    showFinale(data);  // Statt alert()
 });
+
+
 
 socket.on('playerLeft', (data) => {
   if (game && game.phase === 'waiting') {
@@ -388,4 +400,169 @@ html += "</tr>";
 
   html += '</table>';
   scorecardDiv.innerHTML = html;
+}
+
+
+
+// ===== FINALE SEITE =====
+function showFinale(data) {
+    console.log('showFinale called with:', data);
+    
+    if (!data) {
+      console.error('Invalid data:', data);
+      return;
+    }
+    
+    const rankings = data.rankings || data.standings || [];
+    const winner = data.winner || (rankings[0] || {});
+    
+    show('finale');
+    
+    document.getElementById('finalWinnerName').textContent = winner.name || 'Unbekannt';
+    document.getElementById('finalWinnerScore').textContent = `${winner.score || 0} Punkte`;
+    
+    const resultsDiv = document.getElementById('finalResults');
+    if (!resultsDiv) {
+        console.error('finalResults div not found');
+        return;
+    }
+    
+    resultsDiv.innerHTML = '';
+    
+    if (!Array.isArray(rankings) || rankings.length === 0) {
+        console.warn('Rankings is empty or not an array');
+        resultsDiv.innerHTML = '<p>Keine Rankings vorhanden</p>';
+        return;
+    }
+  // Obere Übersicht (Rangliste wie vorher)
+  const summaryWrap = document.createElement('div');
+  summaryWrap.className = 'final-summary';
+  rankings.forEach((player, index) => {
+    const medalEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+    const platzierung = index + 1;
+    const pDiv = document.createElement('div');
+    pDiv.className = `result-item result-place-${platzierung}`;
+    pDiv.innerHTML = `
+      <div class="result-medal">${medalEmoji}</div>
+      <div class="result-info">
+        <div class="result-position">Platz ${platzierung}</div>
+        <div class="result-name">${player.name || 'Spieler ' + platzierung}</div>
+      </div>
+      <div class="result-score">${player.score || 0}</div>
+    `;
+    summaryWrap.appendChild(pDiv);
+  });
+  resultsDiv.appendChild(summaryWrap);
+
+  // Detaillierte Punktetabelle: Kategorien x Spieler
+  const tableWrap = document.createElement('div');
+  tableWrap.className = 'final-score-table-wrap';
+
+  // Hilfsfunktion: sichere Scores holen (fallback auf game.players wenn nötig)
+  function getPlayerScores(p) {
+    // 1) Wenn ranks (player) enthält direkte scores, nutze sie
+    if (p.scores) return p.scores;
+    // 2) Wenn der gameOver payload enthielt 'players', prüfe dort zuerst
+    if (data && Array.isArray(data.players)) {
+      const foundInPayload = data.players.find(pl => pl.id === p.id || (pl.name && p.name && pl.name === p.name));
+      if (foundInPayload && foundInPayload.scores) return foundInPayload.scores;
+    }
+    // 3) Fallback auf lokales `game` (falls der Client bereits ein update erhalten hat)
+    if (game && Array.isArray(game.players)) {
+      const found = game.players.find(pl => pl.id === p.id || (pl.name && p.name && pl.name === p.name));
+      if (found && found.scores) return found.scores;
+    }
+    return {};
+  }
+
+  let tableHtml = '<table class="final-score-table"><thead><tr><th>Kategorie</th>';
+  rankings.forEach(p => { tableHtml += `<th>${p.name || 'Spieler'}</th>`; });
+  tableHtml += '</tr></thead><tbody>';
+
+  // Obere Kategorien
+  ['ones','twos','threes','fours','fives','sixes'].forEach((cat, idx) => {
+    tableHtml += '<tr>';
+    tableHtml += `<td style="font-weight:bold;text-align:left;">${catNames[idx]}</td>`;
+    rankings.forEach(p => {
+      const scores = getPlayerScores(p);
+      const val = scores && scores[cat] !== undefined ? scores[cat] : '-';
+      tableHtml += `<td>${val}</td>`;
+    });
+    tableHtml += '</tr>';
+  });
+
+  // Bonus mit Anzeige der oberen Summe
+  tableHtml += '<tr><td style="font-weight:bold;text-align:left;">Bonus</td>';
+  rankings.forEach(p => {
+    const scores = getPlayerScores(p);
+    const upperSum = ['ones','twos','threes','fours','fives','sixes']
+      .reduce((s, c) => s + (scores && scores[c] ? scores[c] : 0), 0);
+    const bonus = getBonus(scores || {});
+    const bonusText = bonus === 0 ? `<span style="font-size:0.85em;color:#999;">(${upperSum}/63)</span>` : `<i>${bonus}</i><br/><span style="font-size:0.85em;color:#999;">(${upperSum}/63)</span>`;
+    tableHtml += `<td>${bonusText}</td>`;
+  });
+  tableHtml += '</tr>';
+
+  // Untere Kategorien
+  ['three','four','full','small','large','kniffel','chance'].forEach((cat, idx) => {
+    tableHtml += '<tr>';
+    tableHtml += `<td style="font-weight:bold;text-align:left;">${catNames[idx + 6]}</td>`;
+    rankings.forEach(p => {
+      const scores = getPlayerScores(p);
+      const val = scores && scores[cat] !== undefined ? scores[cat] : '-';
+      tableHtml += `<td>${val}</td>`;
+    });
+    tableHtml += '</tr>';
+  });
+
+  // Gesamt
+  tableHtml += '<tr><td style="font-weight:bold;text-align:left;color:#218014;">🏆 GESAMT</td>';
+  rankings.forEach(p => {
+    const scores = getPlayerScores(p);
+    const total = getTotalScore(scores || {});
+    tableHtml += `<td style="font-weight:bold;color:#218014;">${total}</td>`;
+  });
+  tableHtml += '</tr>';
+
+  tableHtml += '</tbody></table>';
+
+  tableWrap.innerHTML = tableHtml;
+  resultsDiv.appendChild(tableWrap);
+
+  // Nach Einfügen: Skalieren, damit die Tabelle komplett ohne Scrollen sichtbar ist
+  (function fitTableToContainer() {
+    const tableEl = tableWrap.querySelector('.final-score-table');
+    if (!tableEl) return;
+
+    // Kleine Styling-Hilfe (sicherstellen, dass origin gesetzt ist)
+    tableEl.style.transformOrigin = 'top left';
+    tableWrap.style.overflow = 'hidden';
+
+    // Messungen (tolerant gegenüber 0 Werten)
+    const containerW = resultsDiv.clientWidth || resultsDiv.offsetWidth || window.innerWidth;
+    const containerH = Math.max(200, resultsDiv.clientHeight || resultsDiv.offsetHeight || window.innerHeight * 0.5);
+    const tableW = tableEl.scrollWidth || tableEl.offsetWidth || tableEl.getBoundingClientRect().width;
+    const tableH = tableEl.scrollHeight || tableEl.offsetHeight || tableEl.getBoundingClientRect().height;
+
+    const scaleX = tableW > 0 ? (containerW / tableW) : 1;
+    const scaleY = tableH > 0 ? (containerH / tableH) : 1;
+    const scale = Math.min(1, scaleX, scaleY);
+
+    if (scale < 1) {
+      tableEl.style.transform = `scale(${scale})`;
+      // Höhe so setzen, dass nach Skalierung nichts abgeschnitten wird
+      const visibleH = Math.ceil(tableH * scale);
+      tableWrap.style.height = `${visibleH}px`;
+    } else {
+      tableEl.style.transform = '';
+      tableWrap.style.height = '';
+    }
+  })();
+
+  // Mark winner area (falls benötigt)
+  const top = rankings[0];
+  if (top) {
+    document.getElementById('finalWinnerName').textContent = top.name || 'Unbekannt';
+    document.getElementById('finalWinnerScore').textContent = `${top.score || getTotalScore(top.scores || {})} Punkte`;
+  }
 }
