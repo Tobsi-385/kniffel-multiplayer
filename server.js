@@ -113,6 +113,104 @@ function updatePlayerStats(playerName, score) {
   return stats;
 }
 
+// --- Score-Queue: serialisiere score-Requests pro Raum, um Race-Conditions zu vermeiden
+const scoreQueues = new Map();
+
+function enqueueScore(socketId, code, cat) {
+  const key = code;
+  if (!scoreQueues.has(key)) scoreQueues.set(key, []);
+  scoreQueues.get(key).push({ socketId, cat });
+  if (scoreQueues.get(key).length === 1) {
+    // Starte Verarbeitung asynchron
+    setImmediate(() => processScoreQueue(key));
+  }
+}
+
+async function processScoreQueue(code) {
+  const q = scoreQueues.get(code);
+  if (!q || q.length === 0) return;
+  const item = q[0];
+  try {
+    await handleScore(item.socketId, code, item.cat);
+  } catch (e) {
+    console.error('❌ Fehler beim Verarbeiten eines Score-Queue-Items:', e);
+  }
+  q.shift();
+  if (q.length === 0) scoreQueues.delete(code);
+  else setImmediate(() => processScoreQueue(code));
+}
+
+async function handleScore(socketId, code, cat) {
+  const s = io.sockets.sockets.get(socketId);
+  if (!s) return;
+  const g = games.get(code);
+  if (!g) return;
+
+  try {
+    // Verifiziere/erlaube Turn-Mismatch tolerant (wie vorher)
+    let p = g.players[g.turn];
+    if (!p) {
+      s.emit('error', 'Spieler nicht gefunden');
+      return;
+    }
+    if (p.id !== socketId) {
+      const idx = g.players.findIndex(pl => pl.id === socketId);
+      if (idx !== -1 && (!g.players[idx].scores || g.players[idx].scores[cat] === undefined) && g.rolls < 3) {
+        console.warn(`⚠️ turn mismatch in room ${code}: serverTurn=${g.turn} but scoring from index=${idx}. Accepting and switching turn.`);
+        g.turn = idx;
+        p = g.players[g.turn];
+      } else {
+        s.emit('error', 'Du bist nicht am Zug!');
+        return;
+      }
+    }
+
+    console.log(`🔢 score request: room=${code} player=${p.name} cat=${cat} dice=[${g.dice}]`);
+
+    if (isCategoryUsed(p.scores, cat)) {
+      s.emit('error', 'Kategorie bereits genutzt!');
+      return;
+    }
+
+    const score = calculateScore(g.dice, cat);
+    p.scores[cat] = score;
+
+    g.gameLog.push({
+      player: p.name,
+      action: 'score',
+      category: cat,
+      points: score
+    });
+
+    console.log(`✅ scored: ${p.name} -> ${cat} = ${score}`);
+
+    // Nach dem erfolgreichen Setzen ggf. Spielende prüfen und emitten
+    const allCats = ['ones','twos','threes','fours','fives','sixes','three','four','full','small','large','kniffel','chance'];
+    const isGameOver = g.players.every(player => allCats.every(c => c in player.scores));
+
+    if (isGameOver) {
+      const totals = g.players.map(pl => ({ name: pl.name, score: getTotalScore(pl.scores) }));
+      totals.sort((a, b) => b.score - a.score);
+      g.phase = 'finished';
+      g.winner = totals[0];
+      saveGameToHistory(code, g, totals[0]);
+      totals.forEach(t => updatePlayerStats(t.name, t.score));
+      io.to(code).emit('gameOver', { winner: totals[0], standings: totals, players: g.players });
+      console.log(`🏆 Spiel ${code} vorbei! Gewinner: ${totals[0].name} (${totals[0].score} Punkte)`);
+    } else {
+      // Nächster Spieler
+      g.turn = (g.turn + 1) % g.players.length;
+      g.dice = rollDice();
+      g.rolls = 3;
+      io.to(code).emit('room', g);
+    }
+
+  } catch (err) {
+    console.error('❌ Fehler im handleScore:', err);
+    s.emit('error', 'Interner Serverfehler beim Setzen der Punkte');
+  }
+}
+
 // ===== SOCKET.IO EVENTS =====
 
 io.on('connection', (socket) => {
@@ -209,99 +307,10 @@ io.on('connection', (socket) => {
   });
 
   // Score setzen
+  // Wire up score requests to the queue to avoid races (clients still emit 'score')
   socket.on('score', ({ code, cat }) => {
-    const g = games.get(code);
-    if (!g) return;
-
-    try {
-      // Verifiziere, dass der anfragende Socket auch der aktuelle Spieler ist
-      let p = g.players[g.turn];
-    if (!p) {
-      socket.emit('error', 'Spieler nicht gefunden');
-      return;
-    }
-    if (p.id !== socket.id) {
-      // Toleranter Modus: falls der Server-turn abweicht (Race), aber der anfragende Socket
-      // tatsächlich ein Spieler im Raum ist und seine Kategorie noch frei ist, erlauben
-      // wir das Setzen und setzen g.turn auf diesen Spieler. Nur wenn das nicht zutrifft
-      // lehnen wir ab.
-      const idx = g.players.findIndex(pl => pl.id === socket.id);
-      if (idx !== -1 && (!g.players[idx].scores || g.players[idx].scores[cat] === undefined) && g.rolls < 3) {
-        console.warn(`⚠️ turn mismatch in room ${code}: serverTurn=${g.turn} but scoring from index=${idx}. Accepting and switching turn.`);
-        g.turn = idx;
-        p = g.players[g.turn];
-      } else {
-        socket.emit('error', 'Du bist nicht am Zug!');
-        return;
-      }
-    }
-
-      // Logging zur Fehlersuche (zeigt dice, player und Kategorie)
-      console.log(`🔢 score request: room=${code} player=${p.name} cat=${cat} dice=[${g.dice}]`);
-
-      // Validierung: Kategorie bereits genutzt?
-      if (isCategoryUsed(p.scores, cat)) {
-        socket.emit('error', 'Kategorie bereits genutzt!');
-        return;
-      }
-
-      const score = calculateScore(g.dice, cat);
-      p.scores[cat] = score;
-
-      g.gameLog.push({
-        player: p.name,
-        action: 'score',
-        category: cat,
-        points: score
-      });
-
-      console.log(`✅ scored: ${p.name} -> ${cat} = ${score}`);
-    } catch (err) {
-      console.error('❌ Fehler im score-Handler:', err);
-      socket.emit('error', 'Interner Serverfehler beim Setzen der Punkte');
-      return;
-    }
-
-    // Überprüfe ob Spiel vorbei ist
-    const allCats = ['ones','twos','threes','fours','fives','sixes','three','four','full','small','large','kniffel','chance'];
-    const isGameOver = g.players.every(player => 
-      allCats.every(cat => cat in player.scores)
-    );
-
-    if (isGameOver) {
-      const totals = g.players.map(pl => ({
-        name: pl.name,
-        score: getTotalScore(pl.scores)
-      }));
-      totals.sort((a, b) => b.score - a.score);
-
-      g.phase = 'finished';
-      g.winner = totals[0];
-
-      // Speichere Spiel-Historie
-      saveGameToHistory(code, g, totals[0]);
-
-      // Update Statistiken
-      totals.forEach(t => {
-        updatePlayerStats(t.name, t.score);
-      });
-
-      // Sende die komplette Spielerliste mit Scores mit, damit Clients die Detailtabelle bauen können
-      io.to(code).emit('gameOver', {
-        winner: totals[0],
-        standings: totals,
-        players: g.players
-      });
-
-      console.log(`🏆 Spiel ${code} vorbei! Gewinner: ${totals[0].name} (${totals[0].score} Punkte)`);
-    } else {
-      // Nächster Spieler
-      g.turn = (g.turn + 1) % g.players.length;
-      g.dice = rollDice();
-      g.rolls = 3;
-
-      io.to(code).emit('room', g);
-    }
+    // push into per-room queue; the handler will validate socket id
+    enqueueScore(socket.id, code, cat);
   });
 
   // Chat-Nachricht
