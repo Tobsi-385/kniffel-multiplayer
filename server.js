@@ -57,8 +57,13 @@ function calculateScore(dice, category) {
 }
 
 // Berechne Gesamtscore
+// Berechne Gesamtscore inkl. Bonus (obere Sektion)
 function getTotalScore(playerScores) {
-  return Object.values(playerScores).reduce((a, b) => a + (b || 0), 0);
+  const base = Object.values(playerScores).reduce((a, b) => a + (b || 0), 0);
+  const upperSum = ['ones','twos','threes','fours','fives','sixes']
+    .reduce((s, cat) => s + (playerScores[cat] || 0), 0);
+  const bonus = upperSum >= 63 ? 35 : 0;
+  return base + bonus;
 }
 
 // Überprüfe ob Kategorie bereits genutzt wurde
