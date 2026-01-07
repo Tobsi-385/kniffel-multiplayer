@@ -123,7 +123,46 @@
     </div>
 </div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="app.js"></script>
+        <!-- Impressum & Datenschutz (SPAscreens) -->
+
+        <div id="impressum" class="screen" style="display:none;">
+            <div class="container">
+                <h1>Impressum</h1>
+                <p><strong>Angaben gemäß § 5 TMG</strong></p>
+                <p>
+                    Max Mustermann<br>
+                    Musterstraße 1<br>
+                    12345 Musterstadt
+                </p>
+                <p><strong>Kontakt</strong><br>
+                    Telefon: +49 123 4567890<br>
+                    E‑Mail: <a href="mailto:info@example.com">info@example.com</a>
+                </p>
+                <p style="margin-top:18px;"><a href="#" onclick="show('start'); return false;">Zurück zur Startseite</a></p>
+            </div>
+        </div>
+
+        <div id="datenschutz" class="screen" style="display:none;">
+            <div class="container">
+                <h1>Datenschutzerklärung</h1>
+                <p>Der Schutz Ihrer Daten ist uns wichtig. Nachfolgend informieren wir Sie, welche personenbezogenen Daten beim Betrieb dieser Web‑Anwendung verarbeitet werden und zu welchem Zweck.</p>
+                <h2>Verantwortlicher</h2>
+                <p>Max Mustermann<br> Musterstraße 1, 12345 Musterstadt<br> E‑Mail: <a href="mailto:info@example.com">info@example.com</a></p>
+                <h2>Welche Daten werden erhoben?</h2>
+                <ul>
+                    <li>Ihr angezeigter Name, den Sie beim Betreten eines Raumes angeben.</li>
+                    <li>Verbindungsdaten (z. B. IP‑Adresse, Verbindungszeitpunkte) werden kurzzeitig vom Server protokolliert.</li>
+                    <li>Spielbezogene Daten (Raum, Spielstände, Würfelstände) werden zur Spielfunktion gespeichert.</li>
+                </ul>
+                <p style="margin-top:18px;"><a href="#" onclick="show('start'); return false;">Zurück zur Startseite</a></p>
+            </div>
+        </div>
+
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="app.js"></script>
+        <footer style="text-align:center;padding:20px 12px;color:var(--muted);">
+            <a href="#" onclick="show('impressum');return false;" style="color:var(--muted);margin-right:12px;">Impressum</a>
+            <a href="#" onclick="show('datenschutz');return false;" style="color:var(--muted);">Datenschutz</a>
+        </footer>
 </body>
 </html>
