@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
@@ -21,7 +22,8 @@ function generateRoomCode() {
 }
 
 function rollDice(count = 5) {
-  return Array(count).fill(0).map(() => Math.floor(Math.random() * 6) + 1);
+  // Verwende crypto.randomInt für kryptographisch sichere Zufallszahlen
+  return Array(count).fill(0).map(() => crypto.randomInt(1, 7));
 }
 
 function calculateScore(dice, category) {
@@ -298,7 +300,7 @@ io.on('connection', (socket) => {
     // Validierung
     if (kept.length !== g.dice.length) return;
 
-    g.dice = g.dice.map((d, i) => kept[i] ? d : Math.floor(Math.random()*6)+1);
+    g.dice = g.dice.map((d, i) => kept[i] ? d : crypto.randomInt(1,7));
     g.rolls--;
 
     g.gameLog.push({
